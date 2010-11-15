@@ -7,7 +7,9 @@ using ConfOrm.NH;
 using ConfOrm.Patterns;
 using ConfOrm.Shop.Appliers;
 using ConfOrm.Shop.CoolNaming;
+using ConfOrm.Shop.Inflectors;
 using ConfOrm.Shop.Packs;
+using ConfOrm.Shop.InflectorNaming;
 using Mystic;
 using NHibernate;
 using NHibernate.ByteCode.Castle;
@@ -25,12 +27,11 @@ namespace NHibernateMystic
 		private const string ConnectionString =
 			@"Data Source=localhost\SQLEXPRESS;Initial Catalog=IntroNH;Integrated Security=True;Pooling=False";
 
+		private readonly Type[] baseTypesToRecognizeRootEntities = new[] {typeof (AbstractEntity<>), typeof (Entity)};
+		private readonly Type[] tablePerClassHierarchy = new Type[] {};
+		private readonly Type[] tablePerConcreteClass = new Type[] {};
 		private Configuration configure;
 		private ISessionFactory sessionFactory;
-
-		private readonly Type[] baseTypesToRecognizeRootEntities = new[] { typeof(AbstractEntity<>), typeof(Entity) };
-		private readonly Type[] tablePerClassHierarchy = new Type[] { };
-		private readonly Type[] tablePerConcreteClass = new Type[] { };
 
 		#region NH Startup
 
@@ -43,10 +44,7 @@ namespace NHibernateMystic
 		{
 			configure = new Configuration();
 			configure.SessionFactoryName("Demo");
-			configure.Proxy(p =>
-			                {
-			                	p.ProxyFactoryFactory<ProxyFactoryFactory>();
-			                });
+			configure.Proxy(p => { p.ProxyFactoryFactory<ProxyFactoryFactory>(); });
 			configure.DataBaseIntegration(db =>
 			                              {
 			                              	db.Dialect<MsSql2008Dialect>();
@@ -96,7 +94,27 @@ namespace NHibernateMystic
 
 		public HbmMapping GetMapping()
 		{
+			return GetMapper().CompileMappingFor(GetDomainEntities());
+		}
+
+		public IEnumerable<HbmMapping> GetMappings()
+		{
+			return GetMapper().CompileMappingForEach(GetDomainEntities());
+		}
+
+		private IEnumerable<Type> GetDomainEntities()
+		{
+			List<Type> domainEntities = typeof(Entity).Assembly.GetTypes()
+				.Where(t => (typeof(AbstractEntity<int>).IsAssignableFrom(t) || typeof(AbstractEntity<Guid>).IsAssignableFrom(t))
+				            && !t.IsGenericType)
+				.ToList();
+			return domainEntities;
+		}
+
+		private Mapper GetMapper()
+		{
 			#region Initialize ConfORM
+			//var inflector = new EnglishInflector();
 
 			var orm = new ObjectRelationalMapper();
 			IPatternsAppliersHolder patternsAppliers =
@@ -106,7 +124,9 @@ namespace NHibernateMystic
 					.Merge(new BidirectionalOneToManyRelationPack(orm))
 					.Merge(new DiscriminatorValueAsClassNamePack(orm))
 					.Merge(new CoolTablesNamingPack(orm))
+					//.Merge(new PluralizedTablesPack(orm, inflector))
 					.Merge(new CoolColumnsNamingPack(orm))
+					.Merge(new PolymorphismPack(orm))
 					.Merge(new TablePerClassPack())
 					.Merge(new UseNoLazyForNoProxablePack()) // <== Lazy false when the class is not proxable
 					.Merge(new ConfOrm.Shop.CoolNaming.UnidirectionalOneToManyMultipleCollectionsKeyColumnApplier(orm))
@@ -117,12 +137,6 @@ namespace NHibernateMystic
 			orm.Patterns.PoidStrategies.Add(new HighLowPoidPattern(new {max_lo = 100}));
 
 			var mapper = new Mapper(orm, patternsAppliers);
-
-			var domainEntities = typeof (Entity)
-				.Assembly.GetTypes()
-				.Where(t => (typeof (AbstractEntity<int>).IsAssignableFrom(t) || typeof (AbstractEntity<Guid>).IsAssignableFrom(t)) 
-					&& !t.IsGenericType)
-				.ToList();
 
 			IEnumerable<Type> tablePerClassEntities = typeof (Entity)
 				.Assembly.GetTypes().Where(t => IsRootEntity(t)
@@ -137,13 +151,13 @@ namespace NHibernateMystic
 			#endregion
 
 			ConfOrmMapping(orm, mapper);
-
-			return mapper.CompileMappingFor(domainEntities);
+			return mapper;
 		}
 
 
 		private void ConfOrmMapping(ObjectRelationalMapper orm, Mapper mapper)
 		{
+			
 		}
 	}
 }
