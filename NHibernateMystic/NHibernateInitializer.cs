@@ -19,6 +19,7 @@ using NHibernate.Cfg.MappingSchema;
 using NHibernate.Dialect;
 using NHibernate.Driver;
 using NHibernate.Tool.hbm2ddl;
+using UnidirectionalOneToManyMultipleCollectionsKeyColumnApplier = ConfOrm.Shop.CoolNaming.UnidirectionalOneToManyMultipleCollectionsKeyColumnApplier;
 
 namespace NHibernateMystic
 {
@@ -119,6 +120,7 @@ namespace NHibernateMystic
 			var orm = new ObjectRelationalMapper();
 			IPatternsAppliersHolder patternsAppliers =
 				(new SafePropertyAccessorPack())
+					.Merge(new SafePoidPack())
 					.Merge(new OneToOneRelationPack(orm))
 					.Merge(new BidirectionalManyToManyRelationPack(orm))
 					.Merge(new BidirectionalOneToManyRelationPack(orm))
@@ -129,7 +131,7 @@ namespace NHibernateMystic
 					.Merge(new PolymorphismPack(orm))
 					.Merge(new TablePerClassPack())
 					.Merge(new UseNoLazyForNoProxablePack()) // <== Lazy false when the class is not proxable
-					.Merge(new ConfOrm.Shop.CoolNaming.UnidirectionalOneToManyMultipleCollectionsKeyColumnApplier(orm))
+					.Merge(new UnidirectionalOneToManyMultipleCollectionsKeyColumnApplier(orm))
 					.Merge(new UseCurrencyForDecimalApplier())
 					.Merge(new DatePropertyByNameApplier())
 					.Merge(new MsSQL2008DateTimeApplier());
