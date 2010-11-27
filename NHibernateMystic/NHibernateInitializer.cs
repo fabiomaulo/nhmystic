@@ -104,10 +104,11 @@ namespace NHibernateMystic
 
 		private IEnumerable<Type> GetDomainEntities()
 		{
-			List<Type> domainEntities = typeof(Entity).Assembly.GetTypes()
-				.Where(t => (typeof(AbstractEntity<int>).IsAssignableFrom(t) || typeof(AbstractEntity<Guid>).IsAssignableFrom(t))
+			List<Type> domainEntities = typeof (Entity).Assembly.GetTypes()
+				.Where(t => (typeof (AbstractEntity<int>).IsAssignableFrom(t) || typeof (AbstractEntity<Guid>).IsAssignableFrom(t) || typeof (AbstractEntity<long>).IsAssignableFrom(t))
 				            && !t.IsGenericType)
 				.ToList();
+			// here add your entity-types outside the AbstractEntity<T> hierarchy
 			return domainEntities;
 		}
 
