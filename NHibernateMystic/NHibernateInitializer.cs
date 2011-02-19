@@ -147,6 +147,7 @@ namespace NHibernateMystic
 				                                && !tablePerConcreteClass.Contains(t)).ToList();
 
 			// Mappings
+			orm.AddToDomain(typeof(Entity).Assembly.GetTypes());
 			orm.TablePerClass(tablePerClassEntities);
 			orm.TablePerClassHierarchy(tablePerClassHierarchy);
 			orm.TablePerConcreteClass(tablePerConcreteClass);
